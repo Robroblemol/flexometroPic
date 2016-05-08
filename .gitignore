@@ -1,0 +1,12 @@
+
+*.cod
+*.lst
+*.sym
+*.DSN
+*.SDF
+/Descargas
+*.PWI
+*.cof
+*.err
+*.esym
+*.zip

@@ -1,0 +1,405 @@
+CCS PCH C Compiler, Version 4.023, 25097               03-abr.-16 18:10
+
+               Filename: fexometroPic.lst
+
+               ROM used: 2796 bytes (9%)
+                         Largest free fragment is 25872
+               RAM used: 42 (2%) at main() level
+                         68 (3%) worst case
+               Stack:    4 worst case (2 in main + 2 for interrupts)
+
+*
+1000:  GOTO   1910
+*
+1008:  MOVWF  05
+100A:  MOVFF  FD8,06
+100E:  MOVFF  FE0,07
+1012:  MOVLB  0
+1014:  MOVFF  FE9,0D
+1018:  MOVFF  FEA,08
+101C:  MOVFF  FE1,09
+1020:  MOVFF  FE2,0A
+1024:  MOVFF  FD9,0B
+1028:  MOVFF  FDA,0C
+102C:  MOVFF  FF3,14
+1030:  MOVFF  FF4,15
+1034:  MOVFF  FFA,16
+1038:  MOVFF  00,0F
+103C:  MOVFF  01,10
+1040:  MOVFF  02,11
+1044:  MOVFF  03,12
+1048:  MOVFF  04,13
+104C:  BTFSS  FA0.0
+104E:  GOTO   1058
+1052:  BTFSC  FA1.0
+1054:  GOTO   1122
+1058:  MOVFF  0F,00
+105C:  MOVFF  10,01
+1060:  MOVFF  11,02
+1064:  MOVFF  12,03
+1068:  MOVFF  13,04
+106C:  BSF    0E.7
+106E:  MOVFF  0D,FE9
+1072:  MOVFF  08,FEA
+1076:  MOVFF  09,FE1
+107A:  MOVFF  0A,FE2
+107E:  MOVFF  0B,FD9
+1082:  MOVFF  0C,FDA
+1086:  MOVFF  14,FF3
+108A:  MOVFF  15,FF4
+108E:  MOVFF  16,FFA
+1092:  MOVF   05,W
+1094:  MOVFF  07,FE0
+1098:  MOVFF  06,FD8
+109C:  RETFIE 0
+.................... #include "F:\Chichielectronica\Proyectos\flexometroPic\fexometroPic.h" 
+.................... #include <18F2550.h> 
+.................... //////// Standard Header file for the PIC18F2550 device //////////////// 
+.................... #device PIC18F2550 
+.................... #list 
+....................  
+.................... #fuses HSPLL,NOWDT,NOPROTECT,NOLVP,NODEBUG,USBDIV,PLL5,CPUDIV1,VREGEN,CCP2B3 
+....................  
+.................... #use delay(clock=48000000) 
+*
+1176:  CLRF   FEA
+1178:  MOVLW  29
+117A:  MOVWF  FE9
+117C:  MOVF   FEF,W
+117E:  BZ    119C
+1180:  MOVLW  0F
+1182:  MOVWF  01
+1184:  CLRF   00
+1186:  DECFSZ 00,F
+1188:  BRA    1186
+118A:  DECFSZ 01,F
+118C:  BRA    1184
+118E:  MOVLW  8F
+1190:  MOVWF  00
+1192:  DECFSZ 00,F
+1194:  BRA    1192
+1196:  NOP   
+1198:  DECFSZ FEF,F
+119A:  BRA    1180
+119C:  RETLW  00
+.................... #use rs232(baud=9600,parity=N,xmit=PIN_C6,rcv=PIN_C7,bits=8) 
+.................... #build (reset=0x1000,interrupt=0x1008)//reserva para la bootloader 
+.................... #org 0x0000,0x0FFF{} 
+....................  
+.................... #define led pin_C0//definimos pin_c0 como led 
+.................... #define boton pin_C2//definimos pin_C2 como boton 
+.................... #define trig pin_a5//pin de disparo 
+.................... #define eco pin_b0//no esta en uso 
+....................  
+.................... short int 
+....................           flagHayDatos, 
+....................           flagtrig; 
+.................... //short int flag_endecho; 
+.................... short int flagToggleFlanco; 
+.................... int8 Dh,Dl; 
+.................... float time, 
+....................       D, 
+....................       V_error; 
+.................... char cad = ' '; 
+....................  
+.................... #int_ccp2 
+.................... void handle_ccp2_int(){ 
+....................   output_toggle(led); 
+*
+1122:  BCF    F94.0
+1124:  BTG    F8B.0
+....................   if(flagToggleFlanco==0){      // He recibido Flanco de Subida 
+1126:  BTFSC  18.2
+1128:  BRA    113E
+....................     set_timer1(0);              // Reinicio TMR1 
+112A:  CLRF   FCF
+112C:  CLRF   FCE
+....................     setup_ccp2(CCP_CAPTURE_FE); // Configuro para capturar siguiente flanco de Bajada 
+112E:  MOVLW  B7
+1130:  ANDWF  FB1,F
+1132:  BSF    F93.3
+1134:  CLRF   FBA
+1136:  MOVLW  04
+1138:  MOVWF  FBA
+....................     flagToggleFlanco=1;         // Indico que el siguiente flanco será de Bajada 
+113A:  BSF    18.2
+....................   } else {                      // He recibido Flanco de Bajada 
+113C:  BRA    1170
+....................     time=get_timer1();            // Guardo en time el valor de TMR1 al Flanco de Bajada 
+113E:  MOVF   FCE,W
+1140:  MOVFF  FCF,03
+1144:  MOVWF  42
+1146:  MOVFF  FCF,43
+114A:  BRA    10EA
+114C:  MOVFF  03,1E
+1150:  MOVFF  02,1D
+1154:  MOVFF  01,1C
+1158:  MOVFF  00,1B
+....................     setup_ccp2(CCP_CAPTURE_RE); // Configuro para capturar siguiente flanco de subida 
+115C:  MOVLW  B7
+115E:  ANDWF  FB1,F
+1160:  BSF    F93.3
+1162:  CLRF   FBA
+1164:  MOVLW  05
+1166:  MOVWF  FBA
+....................     flagToggleFlanco=0;         // Indico que el siguiente flanco será de Subida 
+1168:  BCF    18.2
+....................     if(flagHayDatos==0){        // Si los datos anteriores han sido procesados ... 
+116A:  BTFSC  18.0
+116C:  BRA    1170
+....................       flagHayDatos=1;           // Indico que ya hay nuevos datos de flancos para calcular 
+116E:  BSF    18.0
+....................     } 
+....................   } 
+.................... } 
+....................  
+....................  
+1170:  BCF    FA1.0
+1172:  GOTO   1058
+.................... void main() 
+.................... { 
+*
+1910:  CLRF   FF8
+1912:  BCF    FD0.7
+1914:  BSF    0D.7
+1916:  CLRF   FEA
+1918:  CLRF   FE9
+191A:  BSF    FB8.3
+191C:  MOVLW  E1
+191E:  MOVWF  FAF
+1920:  MOVLW  04
+1922:  MOVWF  FB0
+1924:  MOVLW  A6
+1926:  MOVWF  FAC
+1928:  MOVLW  90
+192A:  MOVWF  FAB
+192C:  MOVF   FC1,W
+192E:  ANDLW  C0
+1930:  IORLW  0F
+1932:  MOVWF  FC1
+1934:  MOVLW  07
+1936:  MOVWF  FB4
+1938:  MOVLW  20
+193A:  MOVWF  27
+....................    delay_ms(300); 
+193C:  MOVLW  02
+193E:  MOVWF  28
+1940:  MOVLW  96
+1942:  MOVWF  29
+1944:  RCALL  1176
+1946:  DECFSZ 28,F
+1948:  BRA    1940
+....................    //flagToggleFlanco = 0; 
+....................    setup_ccp2(CCP_CAPTURE_RE); 
+194A:  MOVLW  B7
+194C:  ANDWF  FB1,F
+194E:  BSF    F93.3
+1950:  CLRF   FBA
+1952:  MOVLW  05
+1954:  MOVWF  FBA
+....................    flagToggleFlanco = 0; 
+1956:  BCF    18.2
+....................    setup_TIMER_1 (T1_INTERNAL|T1_DIV_BY_8);//configuracion timer 1 
+1958:  MOVLW  B5
+195A:  MOVWF  FCD
+....................    enable_interrupts(int_ccp2); 
+195C:  BSF    FA0.0
+....................    enable_interrupts(global); 
+195E:  MOVLW  C0
+1960:  IORWF  FF2,F
+....................     while (true) { 
+....................       if(input(boton)==0){ 
+1962:  BSF    F94.2
+1964:  BTFSC  F82.2
+1966:  BRA    1990
+....................         delay_ms(500); 
+1968:  MOVLW  02
+196A:  MOVWF  28
+196C:  MOVLW  FA
+196E:  MOVWF  29
+1970:  RCALL  1176
+1972:  DECFSZ 28,F
+1974:  BRA    196C
+....................         printf("prueba comunicacion\r\n"); 
+1976:  CLRF   28
+1978:  MOVF   28,W
+197A:  CALL   109E
+197E:  INCF   28,F
+1980:  MOVWF  00
+1982:  MOVF   00,W
+1984:  BTFSS  F9E.4
+1986:  BRA    1984
+1988:  MOVWF  FAD
+198A:  MOVLW  15
+198C:  SUBWF  28,W
+198E:  BNZ   1978
+....................       } 
+....................       if(kbhit()){// si recivimos datos 
+1990:  BTFSS  F9E.5
+1992:  BRA    19AC
+....................          cad = getc();// se guardan en cad 
+1994:  BTFSS  F9E.5
+1996:  BRA    1994
+1998:  MOVFF  FAE,27
+....................          delay_ms(50);//espremos 50ms 
+199C:  MOVLW  32
+199E:  MOVWF  29
+19A0:  CALL   1176
+....................          putc(cad);//devolvemos lo recivido 
+19A4:  MOVF   27,W
+19A6:  BTFSS  F9E.4
+19A8:  BRA    19A6
+19AA:  MOVWF  FAD
+....................       } 
+....................       if(flagHayDatos==0&&flagtrig==0){ 
+19AC:  BTFSC  18.0
+19AE:  BRA    19C8
+19B0:  BTFSC  18.1
+19B2:  BRA    19C8
+....................         output_bit(trig,1); 
+19B4:  BSF    F89.5
+19B6:  BCF    F92.5
+....................         delay_us(9); 
+19B8:  MOVLW  23
+19BA:  MOVWF  00
+19BC:  DECFSZ 00,F
+19BE:  BRA    19BC
+19C0:  BRA    19C2
+....................         output_bit(trig,0); 
+19C2:  BCF    F89.5
+19C4:  BCF    F92.5
+....................         flagtrig=1; 
+19C6:  BSF    18.1
+....................         //printf("flagHayDatos = 0 flagtrig = 1\r\n"); 
+....................      } 
+....................      if(flagHayDatos==1){ 
+19C8:  BTFSS  18.0
+19CA:  BRA    1AE4
+....................       //printf("finalizo captura de eco\r\n"); 
+....................          D=time/58.82; 
+19CC:  MOVFF  1E,2B
+19D0:  MOVFF  1D,2A
+19D4:  MOVFF  1C,29
+19D8:  MOVFF  1B,28
+19DC:  MOVLW  AE
+19DE:  MOVWF  2F
+19E0:  MOVLW  47
+19E2:  MOVWF  2E
+19E4:  MOVLW  6B
+19E6:  MOVWF  2D
+19E8:  MOVLW  84
+19EA:  MOVWF  2C
+19EC:  GOTO   119E
+19F0:  MOVFF  03,22
+19F4:  MOVFF  02,21
+19F8:  MOVFF  01,20
+19FC:  MOVFF  00,1F
+....................          v_error=d*0.33; 
+1A00:  MOVFF  22,38
+1A04:  MOVFF  21,37
+1A08:  MOVFF  20,36
+1A0C:  MOVFF  1F,35
+1A10:  MOVLW  C3
+1A12:  MOVWF  3C
+1A14:  MOVLW  F5
+1A16:  MOVWF  3B
+1A18:  MOVLW  28
+1A1A:  MOVWF  3A
+1A1C:  MOVLW  7D
+1A1E:  MOVWF  39
+1A20:  RCALL  12FA
+1A22:  MOVFF  03,26
+1A26:  MOVFF  02,25
+1A2A:  MOVFF  01,24
+1A2E:  MOVFF  00,23
+....................          D=D-v_error; 
+1A32:  BSF    FD8.1
+1A34:  MOVFF  22,2B
+1A38:  MOVFF  21,2A
+1A3C:  MOVFF  20,29
+1A40:  MOVFF  1F,28
+1A44:  MOVFF  26,2F
+1A48:  MOVFF  25,2E
+1A4C:  MOVFF  24,2D
+1A50:  MOVFF  23,2C
+1A54:  BRA    13EC
+1A56:  MOVFF  03,22
+1A5A:  MOVFF  02,21
+1A5E:  MOVFF  01,20
+1A62:  MOVFF  00,1F
+....................          if(d<=400&&d>=2){ 
+1A66:  MOVFF  22,2B
+1A6A:  MOVFF  21,2A
+1A6E:  MOVFF  20,29
+1A72:  MOVFF  1F,28
+1A76:  CLRF   2F
+1A78:  CLRF   2E
+1A7A:  MOVLW  48
+1A7C:  MOVWF  2D
+1A7E:  MOVLW  87
+1A80:  MOVWF  2C
+1A82:  RCALL  1658
+1A84:  BC    1A88
+1A86:  BNZ   1AD8
+1A88:  CLRF   2B
+1A8A:  CLRF   2A
+1A8C:  CLRF   29
+1A8E:  MOVLW  80
+1A90:  MOVWF  28
+1A92:  MOVFF  22,2F
+1A96:  MOVFF  21,2E
+1A9A:  MOVFF  20,2D
+1A9E:  MOVFF  1F,2C
+1AA2:  RCALL  1658
+1AA4:  BC    1AA8
+1AA6:  BNZ   1AD8
+....................            //formato para enviar variables tipo float %f tipo String %S 
+....................            //para protocoder enviar siempre \r\n 
+....................            printf("%f%S",d,"\r"); 
+1AA8:  MOVLW  89
+1AAA:  MOVWF  FE9
+1AAC:  MOVFF  22,2B
+1AB0:  MOVFF  21,2A
+1AB4:  MOVFF  20,29
+1AB8:  MOVFF  1F,28
+1ABC:  MOVLW  02
+1ABE:  MOVWF  2C
+1AC0:  BRA    1788
+1AC2:  CLRF   28
+1AC4:  MOVF   28,W
+1AC6:  CALL   10CE
+1ACA:  IORLW  00
+1ACC:  BZ    1AD8
+1ACE:  INCF   28,F
+1AD0:  BTFSS  F9E.4
+1AD2:  BRA    1AD0
+1AD4:  MOVWF  FAD
+1AD6:  BRA    1AC4
+....................          } 
+....................          flagHayDatos=0; 
+1AD8:  BCF    18.0
+....................          time=0; 
+1ADA:  CLRF   1E
+1ADC:  CLRF   1D
+1ADE:  CLRF   1C
+1AE0:  CLRF   1B
+....................          flagtrig=0; 
+1AE2:  BCF    18.1
+....................       } 
+....................         delay_ms(250); 
+1AE4:  MOVLW  FA
+1AE6:  MOVWF  29
+1AE8:  CALL   1176
+....................     } 
+1AEC:  BRA    1962
+.................... } 
+1AEE:  SLEEP 
+
+Configuration Fuses:
+   Word  1: 0E24   NOIESO NOFCMEN HSPLL PLL5 CPUDIV1 USBDIV
+   Word  2: 1E3E   BROWNOUT NOWDT BORV20 PUT WDT32768 VREGEN
+   Word  3: 8200   PBADEN CCP2B3 MCLR NOLPT1OSC RESERVED
+   Word  4: 0081   STVREN NODEBUG NOLVP NOXINST RESERVED
+   Word  5: C00F   NOPROTECT NOCPD NOCPB
+   Word  6: E00F   NOWRT NOWRTD NOWRTC NOWRTB
+   Word  7: 400F   NOEBTR NOEBTRB
